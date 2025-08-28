@@ -38,7 +38,7 @@ class DecisionTree:
             best_split = self.get_best_split(dataset, num_samples, num_features, sample_weights)
 
             # If we found a valid split
-            if best_split["info_gain"] > 0:
+            if best_split and best_split.get("info_gain", 0) > 0:
                 # Split weights accordingly
                 left_weights = right_weights = None
                 if sample_weights is not None:
