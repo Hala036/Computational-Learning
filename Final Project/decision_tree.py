@@ -32,7 +32,7 @@ class DecisionTree:
         X, Y = dataset[:, :-1], dataset[:, -1]
         num_samples, num_features = X.shape
 
-        # Check stopping conditions [DEBUG]
+        # Check stopping conditions
         if num_samples >= self.min_samples_split and (curr_depth <= self.max_depth):
             # Find best split using weights
             best_split = self.get_best_split(dataset, num_samples, num_features, sample_weights)

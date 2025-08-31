@@ -8,6 +8,7 @@ class AdaBoost:
         self.models = []     # Weak learners (trees)
 
     def fit(self, X, y):
+        y_transformed = np.where(y.ravel() == 0, -1, 1)
         n_samples = X.shape[0]
         # Initialize weights equally
         sample_weights = np.ones(n_samples) / n_samples
@@ -22,7 +23,10 @@ class AdaBoost:
 
             # Predict and compute error
             y_pred = model.predict(X)
-            error = np.sum(sample_weights[y_pred != y])
+            y_pred_transformed = np.where(y_pred == 0, -1, 1)
+
+            # Weighted error
+            error = np.sum(sample_weights[y_pred_transformed != y_transformed])
 
             # Stop if error too high or zero
             if error > 0.5 or error == 0:
@@ -32,7 +36,7 @@ class AdaBoost:
             alpha = 0.5 * np.log((1 - error) / (error + 1e-10))
 
             # Update weights: increase weight for misclassified samples
-            sample_weights *= np.exp(-alpha * y * np.where(y_pred == y, 1, -1))
+            sample_weights *= np.exp(-alpha * y_transformed * y_pred_transformed)
             sample_weights /= np.sum(sample_weights)  # Normalize
 
             self.models.append(model)
