@@ -5,15 +5,14 @@ class AdaBoost:
     def __init__(self, n_estimators=10):
         self.n_estimators = n_estimators
         self.alphas = []     # Model weights
-        self.models = []     # Weak learners (trees)
+        self.models = []     # Weak learners (stumps/tree)
 
     def fit(self, X, y):
-        # ADDED: ensure arrays & shapes are consistent
         X = np.asarray(X, dtype=float)
-        y = np.asarray(y).ravel()             # 1D labels for internal processing
-        y_col = y.reshape(-1, 1)              # CHANGED: your DecisionTree.fit concatenates -> needs (n,1)
+        y = np.asarray(y).ravel() # we used ravel to make y a 1-dimensional array instead of 2D
+        y_col = y.reshape(-1, 1) # the decision tree fit method expects a column vector, so we created this variable to provide it
 
-        # ADDED: convert labels to {-1, +1} for correct AdaBoost math
+        # transform 0/1 classes to -1/1, in order for the calculations used in AdaBoost to be optimal
         y_bin = np.where(y == 1, 1.0, -1.0)
 
         n_samples = X.shape[0]
@@ -26,51 +25,54 @@ class AdaBoost:
         self.models = []
 
         for _ in range(self.n_estimators):
-            # Train weak learner (stump = max_depth=1)
-            # ADDED: force a stump and minimum split so it behaves like a weak learner
+            # for each iteration, create a new decision tree with max depth 1
             model = DecisionTree(max_depth=1, min_samples_split=2)
-            # CHANGED: pass y as a column vector to match your DecisionTree.fit
+            # run DecisionTree.fit, with the sample weights so that each model can focus on the intended samples
+            # (preciously misclassified samples)
             model.fit(X, y_col, sample_weights=sample_weights)
 
             # Predict on training data
             y_pred = np.asarray(model.predict(X))
-            # ADDED: convert predictions to {-1, +1}
             h_bin = np.where(y_pred == 1, 1.0, -1.0)
 
-            # Weighted classification error: sum of weights where prediction != label
+            # we calculate the error by checking how many misclassification we got and summing them together,
+            # then dividing by the total samples weight
             miss = (h_bin != y_bin)
-            error = np.sum(sample_weights[miss])
+            error = np.sum(sample_weights[miss]) / np.sum(sample_weights)
 
-            # ADDED: clamp error to (0,1) to avoid infinities / zero division
+            # place error in the range 0-1 to prevent division by 0 in case err=0, or log(0) in case err=1
             eps = 1e-12
             error = float(np.clip(error, eps, 1 - eps))
 
-            # Compute model weight (alpha)
+            # Compute model weight (alpha)~ determines the importance of this model
             alpha = 0.5 * np.log((1.0 - error) / error)
 
-            # ADDED: update sample weights using AdaBoost rule w_i *= exp(-alpha * y_i * h_i)
+            # update sample weights: w[i] *= exp(alpha * y[i] * h[i]) / (-alpha for correctly classified samples)
+            # this way we give higher weights to misclassified samples so that the next model can focus on them
             sample_weights *= np.exp(-alpha * y_bin * h_bin)
             sample_weights /= np.sum(sample_weights)  # normalize
 
-            # Save learner & its weight
+            # Save learner and its weight
             self.models.append(model)
             self.alphas.append(alpha)
 
     def predict(self, X):
-        X = np.asarray(X, dtype=float)  # ADDED: ensure numeric array
+        X = np.asarray(X, dtype=float)
 
-        # ADDED: handle case where fit() added no models (edge case)
+        # return all zeros if no models were initialised and trained
         if not self.models:
             return np.zeros(X.shape[0], dtype=int)
 
         # Weighted vote of all models in {-1, +1} space
+        # F is the array that saves in each index, each models weight multiplied by its prediction
         F = np.zeros(X.shape[0], dtype=float)
         for alpha, model in zip(self.alphas, self.models):
             pred = np.asarray(model.predict(X))
             h_bin = np.where(pred == 1, 1.0, -1.0)  # Convert to ±1
             F += alpha * h_bin
 
-        # ADDED: convert sign(F) back to {0,1}; tie (0) favors +1 class
+        # create the array 'y_hat_bin' that has +1 for values that are ≥0 and -1 for negative values in F
         y_hat_bin = np.sign(F)
         y_hat_bin[y_hat_bin == 0] = 1.0
+        # convert the -1's to 0 (our original classes)
         return np.where(y_hat_bin == 1.0, 1, 0)

@@ -259,8 +259,8 @@ class DecisionTree:
     def predict(self, X):
         """ function to predict new dataset """
 
-        preditions = [self.make_prediction(x, self.root) for x in X]
-        return preditions
+        predictions = [self.make_prediction(x, self.root) for x in X]
+        return predictions
 
     def make_prediction(self, x, tree):
         """ function to predict a single data point """
