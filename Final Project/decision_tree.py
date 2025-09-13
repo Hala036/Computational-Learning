@@ -88,9 +88,8 @@ class DecisionTree:
                     right_y = dataset_right[:, -1]
 
                     # compute information gain
-                    # Compute corresponding weights (if any)
+                    # compute corresponding weights (if any)
                     if sample_weights is not None:
-                        indices = np.arange(len(dataset))
                         left_mask = dataset[:, feature_index] <= threshold
                         right_mask = ~left_mask
 
