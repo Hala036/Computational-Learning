@@ -28,6 +28,7 @@ class RandomForest:
 
             # Train a decision tree
             tree = DecisionTree(min_samples_split=self.min_samples_split, max_depth=self.max_depth)
+            y_sample = y_sample.reshape(-1, 1)
             tree.fit(X_sample_subset, y_sample)
             self.trees.append(tree)
 

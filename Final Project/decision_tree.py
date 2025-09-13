@@ -32,13 +32,13 @@ class DecisionTree:
         X, Y = dataset[:, :-1], dataset[:, -1]
         num_samples, num_features = X.shape
 
-        # Check stopping conditions [DEBUG]
+        # Check stopping conditions
         if num_samples >= self.min_samples_split and (curr_depth <= self.max_depth):
             # Find best split using weights
             best_split = self.get_best_split(dataset, num_samples, num_features, sample_weights)
 
             # If we found a valid split
-            if best_split["info_gain"] > 0:
+            if best_split and best_split.get("info_gain", 0) > 0:
                 # Split weights accordingly
                 left_weights = right_weights = None
                 if sample_weights is not None:
@@ -88,9 +88,8 @@ class DecisionTree:
                     right_y = dataset_right[:, -1]
 
                     # compute information gain
-                    # Compute corresponding weights (if any)
+                    # compute corresponding weights (if any)
                     if sample_weights is not None:
-                        indices = np.arange(len(dataset))
                         left_mask = dataset[:, feature_index] <= threshold
                         right_mask = ~left_mask
 
@@ -259,8 +258,8 @@ class DecisionTree:
     def predict(self, X):
         """ function to predict new dataset """
 
-        preditions = [self.make_prediction(x, self.root) for x in X]
-        return preditions
+        predictions = [self.make_prediction(x, self.root) for x in X]
+        return predictions
 
     def make_prediction(self, x, tree):
         """ function to predict a single data point """
